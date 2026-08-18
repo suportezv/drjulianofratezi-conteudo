@@ -10,7 +10,15 @@ HYPERFRAMES="$TOOLS_DIR/heygen-com/hyperframes"
 
 echo "== 1/5 ffmpeg =="
 if ! command -v ffmpeg >/dev/null; then
-  apt-get update -qq && apt-get install -y -qq ffmpeg fonts-liberation
+  if ! { apt-get update -qq && apt-get install -y -qq ffmpeg fonts-liberation; } 2>/dev/null; then
+    # Cloud desta conta: apt bloqueado pelo proxy (403 em HTTP). Build estático GPL
+    # do BtbN tem subtitles (libass), zscale (zimg) e zoompan.
+    echo "apt bloqueado; instalando ffmpeg estático (BtbN, github releases)"
+    curl -sL -o /tmp/ffmpeg.tar.xz "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+    tar xf /tmp/ffmpeg.tar.xz -C /tmp
+    cp /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/
+    rm -rf /tmp/ffmpeg.tar.xz /tmp/ffmpeg-master-latest-linux64-gpl
+  fi
 fi
 ffmpeg -version | head -1
 
@@ -32,7 +40,12 @@ echo "== 3/5 hyperframes + media-use =="
 if [ ! -d "$HYPERFRAMES/.git" ]; then
   GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/heygen-com/hyperframes "$HYPERFRAMES"
 fi
-npx --yes hyperframes skills update
+# O update remoto falha onde raw.githubusercontent.com é bloqueado; fallback: symlink do clone local.
+npx --yes hyperframes skills update || true
+if [ ! -e ~/.claude/skills/hyperframes ]; then
+  for d in "$HYPERFRAMES/skills"/*/; do ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"; done
+  echo "skills do hyperframes registradas por symlink do clone local"
+fi
 
 echo "== 4/5 Python (PIL para overlays, numpy para batidas) =="
 python3 -c 'import PIL' 2>/dev/null || pip3 install pillow
@@ -44,6 +57,11 @@ ln -sfn "$REPO_ROOT" ~/"$STUDIO_NAME"
 echo "~/$STUDIO_NAME -> $REPO_ROOT"
 
 if [ ! -f "$VIDEO_USE/.env" ]; then
-  echo "PENDENTE: gravar ELEVENLABS_API_KEY em $VIDEO_USE/.env (peça ao usuário; chave sk_ de 51 chars)"
+  if [ -n "${ELEVENLABS_API_KEY:-}" ]; then
+    printf 'ELEVENLABS_API_KEY=%s\n' "$ELEVENLABS_API_KEY" > "$VIDEO_USE/.env"
+    echo "ELEVENLABS_API_KEY gravada em $VIDEO_USE/.env (da env var do environment)"
+  else
+    echo "PENDENTE: gravar ELEVENLABS_API_KEY em $VIDEO_USE/.env (peça ao usuário; chave sk_ de 51 chars)"
+  fi
 fi
 echo "Setup concluído. Rode: bash $REPO_ROOT/scripts/validate.sh"
