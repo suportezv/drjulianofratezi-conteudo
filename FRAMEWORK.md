@@ -38,7 +38,7 @@ Compliance CFM (Res. 2.336/2023): conflito de interesse declarado, sem promessa 
 Padrão validado da agência:
 
 - Hook verbal ou visual + título na tela nos **2 primeiros segundos**.
-- Lettering condensado caps branco com sombra dura; acento colorido nas ênfases (cor da marca: **PENDENTE confirmar**; fonte: Helvetica Neue Condensed Black no Mac; Liberation Sans Bold como fallback Linux).
+- Lettering condensado caps branco com sombra dura; acento colorido nas ênfases (cor da marca proposta: **âmbar farol `#E89C2E`**, sistema completo em `assets/design-system.md`, **PENDENTE validação do cliente**; fonte: Helvetica Neue Condensed Black no Mac; Liberation Sans Bold como fallback Linux).
 - Legendas frase a frase em branco (não karaokê), terço inferior, SEMPRE por último no filter chain.
 - Cortes secos; punch-ins de zoom 1.10 a 1.22x; freeze frames P&B com card para punchlines; cutaways como payoff de piada.
 - Palavrão não corta: **bipa**.
