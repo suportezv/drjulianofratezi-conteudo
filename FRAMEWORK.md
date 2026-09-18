@@ -106,7 +106,7 @@ O estúdio mantém os dois, e a escolha **não é preferência do momento**: cad
 | O visual pedido já existe no registry (scanlines, glitch, gráfico, janela de terminal) | Você vai gerar **N variações** da mesma peça mudando nome, cupom, idioma ou número |
 | Ninguém vai reprocessar a peça em outro framework | Há chance real de a peça mudar de destino depois |
 
-**Padrão declarado: HyperFrames.** Ele é o que está integrado ao fluxo do estúdio e o que tem as 20 skills. O Remotion entra por decisão consciente, não por inércia. Composição pronta hoje: `CartaoTituloVertical` e `CartaoTituloQuadrado` (título com palavra em destaque sobre fundo aurora).
+**Padrão declarado: HyperFrames.** Ele é o que está integrado ao fluxo do estúdio e o que tem as 20 skills. O Remotion entra por decisão consciente, não por inércia. Composição pronta hoje: `CartaoTituloVertical` e `CartaoTituloQuadrado` (título com palavra em destaque sobre fundo aurora). **Neste environment o HyperFrames roda pelo wrapper `scripts/hf`, com GSAP local; o registry de blocos está bloqueado (`raw.githubusercontent.com`), então "o visual já existe no registry" não vale aqui até liberar o host.** Detalhes no gotcha do `CLAUDE.md`.
 
 **Custo de manter os dois, para vigiar**: dois `node_modules`, dois caminhos de render e dois lugares onde a paleta pode divergir. O terceiro está mitigado, porque os tokens do Remotion vivem em `remotion/src/marca.ts`, mas **se a paleta da marca mudar, atualizar os dois lados**. Se em alguns meses o Remotion não tiver sido usado em nada, ele vira peso morto e se corta; o inverso não vale, porque o HyperFrames é o que sustenta o fluxo.
 

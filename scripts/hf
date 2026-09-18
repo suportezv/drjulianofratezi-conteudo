@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Wrapper do HyperFrames para este container. Motivo: a shell da ferramenta Bash
+# do Claude e nao-interativa e nao-login (bash -c), entao nao le ~/.bashrc nem
+# /etc/profile.d; os env vars abaixo precisam entrar por comando.
+#   HYPERFRAMES_FFMPEG_PATH : o `doctor` nao acha o ffmpeg estatico pelo PATH
+#   HYPERFRAMES_BROWSER_PATH: o download do Chrome proprio esta fora da allowlist;
+#                             o headless_shell do Playwright que ja esta na imagem serve
+#   HYPERFRAMES_SKIP_SKILLS : o `init` conferiria skills no GitHub (bloqueado) e travaria
+# E, depois de `init`, troca o <script> do GSAP no cdn.jsdelivr.net (bloqueado) pela
+# copia local em assets/vendor/gsap.min.js, senao o render e barrado por
+# sub_timeline_script_failure.
+# Uso: scripts/hf doctor | scripts/hf init <dir> --example blank --non-interactive | scripts/hf render <dir>
+set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export HYPERFRAMES_FFMPEG_PATH="${HYPERFRAMES_FFMPEG_PATH:-$(command -v ffmpeg || echo /usr/local/bin/ffmpeg)}"
+_shell=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell
+[ -x "$_shell" ] && export HYPERFRAMES_BROWSER_PATH="${HYPERFRAMES_BROWSER_PATH:-$_shell}"
+export HYPERFRAMES_SKIP_SKILLS="${HYPERFRAMES_SKIP_SKILLS:-1}"
+
+vendor_gsap() {
+  local dir="$1" src="$REPO_ROOT/assets/vendor/gsap.min.js"
+  [ -f "$src" ] && [ -f "$dir/index.html" ] || return 0
+  mkdir -p "$dir/assets/vendor" && cp "$src" "$dir/assets/vendor/gsap.min.js"
+  sed -i -E 's#https://cdn\.jsdelivr\.net/npm/gsap@[0-9.]+/dist/gsap\.min\.js#assets/vendor/gsap.min.js#g' "$dir/index.html"
+  echo "[hf] GSAP local em $dir/assets/vendor/gsap.min.js (cdn.jsdelivr.net esta bloqueado neste environment)"
+}
+
+if [ "${1:-}" = "init" ]; then
+  npx --yes hyperframes "$@"
+  # acha o NAME do init pulando opcoes e os valores das opcoes que recebem valor
+  dir="."; skip=0
+  for a in "${@:2}"; do
+    if [ "$skip" = 1 ]; then skip=0; continue; fi
+    case "$a" in
+      -e|--example|-t|--template|-v|--video|-V|--video-legacy|-a|--audio|--model|--language|--resolution|--skill) skip=1 ;;
+      -*) ;;
+      *) dir="$a"; break ;;
+    esac
+  done
+  vendor_gsap "$dir"
+  exit 0
+fi
+exec npx --yes hyperframes "$@"

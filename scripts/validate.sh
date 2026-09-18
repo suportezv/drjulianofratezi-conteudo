@@ -83,12 +83,27 @@ else
   fi
 fi
 
-echo "== 6. Skills registradas =="
+echo "== 6. HyperFrames (init + render local de verdade) =="
+# O wrapper scripts/hf injeta HYPERFRAMES_FFMPEG_PATH, HYPERFRAMES_BROWSER_PATH e
+# troca o GSAP do CDN (bloqueado) pela copia local. Sem isso o render e barrado.
+HF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hf"
+_hf="$(mktemp -d)"
+if (cd "$_hf" && "$HF" init p --example blank --non-interactive --resolution portrait >/dev/null 2>&1) \
+   && sed -i 's/data-duration="10"/data-duration="1"/g' "$_hf/p/index.html" \
+   && "$HF" render "$_hf/p" -q draft -o "$_hf/p/out.mp4" --quiet >/dev/null 2>&1 \
+   && [ -s "$_hf/p/out.mp4" ]; then
+  echo "OK (init + render local: $(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames -of csv=p=0 "$_hf/p/out.mp4" | tr ',' 'x') frames)"
+else
+  echo "FALHA: HyperFrames não renderizou localmente (rode scripts/hf doctor; GSAP local em assets/vendor/?)"
+fi
+rm -rf "$_hf"
+
+echo "== 7. Skills registradas =="
 [ -e ~/.claude/skills/video-use/SKILL.md ] && echo "OK video-use" || echo "PENDENTE video-use"
 HF=$(ls -d ~/.claude/skills/*/ 2>/dev/null | while read -r d; do [ -f "$d/SKILL.md" ] && basename "$d"; done | grep -cE 'hyperframes|media-use|motion-graphics|embedded-captions')
 if [ "${HF:-0}" -ge 4 ]; then echo "OK hyperframes ($HF skills com SKILL.md)"; else echo "PENDENTE hyperframes (rode scripts/setup.sh)"; fi
 
-echo "== 7. Na sessão do Claude, validar ainda: =="
+echo "== 8. Na sessão do Claude, validar ainda: =="
 echo " - Metricool: getBrandSettings lista a marca drjulianofratezi com blog_id 6741542"
 echo "   e com instagramData = drjulianofratezi (em 18/set/2026 estava drajulianaromano: NAO agendar até corrigir)"
 echo " - Kairogen: get_me_context mostra plano e créditos (conta atual: FREE, 0 créditos)"

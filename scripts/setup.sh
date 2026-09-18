@@ -105,6 +105,19 @@ if ! npx --yes hyperframes skills update 2>/dev/null; then
   done
   echo "$n skills do hyperframes registradas a partir de $HYPERFRAMES/skills"
 fi
+# O `hyperframes doctor` nao acha o ffmpeg estatico pelo PATH e quer baixar o
+# proprio Chrome (fora da allowlist). Os dois tem env var, e o headless_shell
+# do Playwright que ja esta na imagem serve para o render local. Grava num
+# profile.d e no .bashrc para valer em toda shell nova, nao so nesta.
+HF_ENV='export HYPERFRAMES_FFMPEG_PATH=/usr/local/bin/ffmpeg
+export HYPERFRAMES_BROWSER_PATH=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell'
+if [ -x /opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell ]; then
+  printf '%s\n' "$HF_ENV" > /etc/profile.d/hyperframes-studio.sh 2>/dev/null || true
+  grep -q HYPERFRAMES_BROWSER_PATH ~/.bashrc 2>/dev/null || printf '\n%s\n' "$HF_ENV" >> ~/.bashrc
+  echo "HYPERFRAMES_FFMPEG_PATH e HYPERFRAMES_BROWSER_PATH gravados em /etc/profile.d e ~/.bashrc"
+else
+  echo "AVISO: headless_shell do Playwright ausente; render local do hyperframes vai falhar"
+fi
 
 echo "== 4/6 Remotion =="
 # O Remotion e React; as composicoes ficam versionadas em remotion/ e so as

@@ -77,20 +77,30 @@ def gemini_imagem(prompt, modelo):
     return None, json.dumps(d)[:400]
 
 
+def _get_json(url, cabecalho, rotulo):
+    """GET com diagnostico legivel: rede bloqueada ou resposta nao-JSON nao
+    viram traceback. Codigo 000 do curl = o proxy negou o CONNECT (allowlist)."""
+    r = subprocess.run(["curl", "-s", "--max-time", "60", "-w", "\\n%{http_code}",
+                        url, "-H", cabecalho], capture_output=True, text=True)
+    corpo, _, codigo = r.stdout.rpartition("\n")
+    try:
+        return json.loads(corpo)
+    except json.JSONDecodeError:
+        motivo = "rede bloqueada (proxy negou o CONNECT; liberar o host na allowlist)" \
+            if codigo.strip() in ("", "000") else f"HTTP {codigo.strip()}: {corpo[:200]!r}"
+        sys.exit(f"{rotulo}: {motivo}{(' | ' + r.stderr[:200]) if r.stderr else ''}")
+
+
 def listar():
     """Lista os modelos de imagem que cada conta enxerga hoje."""
-    r = subprocess.run(["curl", "-s", "--max-time", "60",
-                        "https://api.openai.com/v1/models",
-                        "-H", f"Authorization: Bearer {chave('OPENAI_API_KEY')}"],
-                       capture_output=True, text=True)
-    ids = sorted(m["id"] for m in json.loads(r.stdout).get("data", []))
+    d = _get_json("https://api.openai.com/v1/models",
+                  f"Authorization: Bearer {chave('OPENAI_API_KEY')}", "OpenAI")
+    ids = sorted(m["id"] for m in d.get("data", []))
     print("OpenAI:", ", ".join(i for i in ids if "image" in i) or "nenhum")
 
-    r = subprocess.run(["curl", "-s", "--max-time", "60",
-                        "https://generativelanguage.googleapis.com/v1beta/models",
-                        "-H", f"x-goog-api-key: {chave('GEMINI_API_KEY')}"],
-                       capture_output=True, text=True)
-    ms = [m["name"].split("/")[-1] for m in json.loads(r.stdout).get("models", [])]
+    d = _get_json("https://generativelanguage.googleapis.com/v1beta/models",
+                  f"x-goog-api-key: {chave('GEMINI_API_KEY')}", "Gemini")
+    ms = [m["name"].split("/")[-1] for m in d.get("models", [])]
     print("Gemini:", ", ".join(m for m in ms if "image" in m) or "nenhum")
 
 
